@@ -1,0 +1,398 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "9bfec747-16ad-416f-a69d-9b0bea7d5375",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -240,
+      "y": -81.6
+    },
+    "ActionMetadata": {
+      "99351e68-cb34-4d03-8273-700d8d79ca80": {
+        "position": {
+          "x": -286.4,
+          "y": 256
+        },
+        "children": [
+          "3c722148-244e-4ad5-8cea-f7505e8bbdd6"
+        ]
+      },
+      "3c722148-244e-4ad5-8cea-f7505e8bbdd6": {
+        "position": {
+          "x": -286.4,
+          "y": 256
+        },
+        "parameters": {
+          "ProcessingTimeoutSeconds": {
+            "unit": 60
+          }
+        }
+      },
+      "9bfec747-16ad-416f-a69d-9b0bea7d5375": {
+        "position": {
+          "x": -251.2,
+          "y": 56.8
+        }
+      },
+      "check-channel": {
+        "position": {
+          "x": -256,
+          "y": 552.8
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "327eb83a-9d8c-40c8-b426-2b59c68abbd8",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "EMAIL"
+          }
+        ]
+      },
+      "disconnect-non-email": {
+        "position": {
+          "x": 702.4,
+          "y": 654.4
+        }
+      },
+      "connect-assistant": {
+        "position": {
+          "x": 22.4,
+          "y": -76
+        },
+        "children": [
+          "c7fcb86c-4021-40a3-b60d-3efee5c04aa4"
+        ],
+        "fragments": {
+          "SetContactData": "c7fcb86c-4021-40a3-b60d-3efee5c04aa4"
+        }
+      },
+      "c7fcb86c-4021-40a3-b60d-3efee5c04aa4": {
+        "position": {
+          "x": 22.4,
+          "y": -76
+        },
+        "dynamicParams": []
+      },
+      "transfer-spam": {
+        "position": {
+          "x": 972,
+          "y": 133.6
+        }
+      },
+      "spam-queue": {
+        "position": {
+          "x": 328.8,
+          "y": -38.4
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "Hotel Spam Review Queue"
+          }
+        },
+        "queue": {
+          "text": "Hotel Spam Review Queue"
+        }
+      },
+      "transfer-to-queue": {
+        "position": {
+          "x": 677.6,
+          "y": -92.8
+        }
+      },
+      "error-handler": {
+        "position": {
+          "x": 1539.2,
+          "y": 300
+        }
+      },
+      "check-spam": {
+        "position": {
+          "x": 70.4,
+          "y": 183.2
+        },
+        "conditions": [],
+        "conditionMetadata": [
+          {
+            "id": "ff46c36b-a1a3-4126-96f7-1bfb51e395c6",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "FAIL"
+          },
+          {
+            "id": "8a2a2604-c195-4fc4-a1d7-7a72eab51027",
+            "operator": {
+              "name": "Equals",
+              "value": "Equals",
+              "shortDisplay": "="
+            },
+            "value": "FAILED"
+          }
+        ]
+      },
+      "set-queue": {
+        "position": {
+          "x": 373.6,
+          "y": 180
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "Hotel Reservations Email Queue"
+          }
+        },
+        "queue": {
+          "text": "Hotel Reservations Email Queue"
+        }
+      }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "EmailBehavior": {
+          "EmailAnalyticsBehavior": {
+            "Enabled": "True",
+            "AnalyticsLanguage": "en-US",
+            "AnalyticsModes": [
+              "ContactLens"
+            ],
+            "ConversationalAnalyticsRedactionConfiguration": {
+              "Enabled": "False"
+            },
+            "SummaryConfiguration": {
+              "SummaryModes": [
+                "ContactChain"
+              ]
+            }
+          }
+        }
+      },
+      "Identifier": "99351e68-cb34-4d03-8273-700d8d79ca80",
+      "Type": "UpdateContactRecordingAndAnalyticsBehavior",
+      "Transitions": {
+        "NextAction": "3c722148-244e-4ad5-8cea-f7505e8bbdd6",
+        "Errors": [
+          {
+            "NextAction": "check-channel",
+            "ErrorType": "NoMatchingError"
+          },
+          {
+            "NextAction": "check-channel",
+            "ErrorType": "ChannelMismatch"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "ProcessingTimeoutSeconds": "3600"
+      },
+      "Identifier": "3c722148-244e-4ad5-8cea-f7505e8bbdd6",
+      "Type": "StartExistingMessageProcessing",
+      "Transitions": {
+        "NextAction": "check-channel",
+        "Errors": [
+          {
+            "NextAction": "check-channel",
+            "ErrorType": "NoMatchingError"
+          },
+          {
+            "NextAction": "check-channel",
+            "ErrorType": "TimeLimitExceeded"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "9bfec747-16ad-416f-a69d-9b0bea7d5375",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "99351e68-cb34-4d03-8273-700d8d79ca80"
+      }
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.Channel"
+      },
+      "Identifier": "check-channel",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "disconnect-non-email",
+        "Conditions": [
+          {
+            "NextAction": "connect-assistant",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "EMAIL"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "disconnect-non-email",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "disconnect-non-email",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "WisdomAssistantArn": "arn:aws:wisdom:us-east-1:123456789012:assistant/00000000-0000-0000-0000-000000000000"
+      },
+      "Identifier": "connect-assistant",
+      "Type": "CreateWisdomSession",
+      "Transitions": {
+        "NextAction": "c7fcb86c-4021-40a3-b60d-3efee5c04aa4",
+        "Errors": [
+          {
+            "NextAction": "check-spam",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "WisdomSessionArn": "$.Wisdom.SessionArn"
+      },
+      "Identifier": "c7fcb86c-4021-40a3-b60d-3efee5c04aa4",
+      "Type": "UpdateContactData",
+      "Transitions": {
+        "NextAction": "check-spam",
+        "Errors": [
+          {
+            "NextAction": "check-spam",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "transfer-spam",
+      "Type": "TransferContactToQueue",
+      "Transitions": {
+        "NextAction": "error-handler",
+        "Errors": [
+          {
+            "NextAction": "error-handler",
+            "ErrorType": "QueueAtCapacity"
+          },
+          {
+            "NextAction": "error-handler",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-east-1:123456789012:instance/00000000-0000-0000-0000-000000000000/queue/00000000-0000-0000-0000-000000000002"
+      },
+      "Identifier": "spam-queue",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "transfer-spam",
+        "Errors": [
+          {
+            "NextAction": "error-handler",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "transfer-to-queue",
+      "Type": "TransferContactToQueue",
+      "Transitions": {
+        "NextAction": "error-handler",
+        "Errors": [
+          {
+            "NextAction": "error-handler",
+            "ErrorType": "QueueAtCapacity"
+          },
+          {
+            "NextAction": "error-handler",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "error-handler",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "ComparisonValue": "$.SegmentAttributes['connect:X-SES-SPAM-VERDICT']"
+      },
+      "Identifier": "check-spam",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "set-queue",
+        "Conditions": [
+          {
+            "NextAction": "spam-queue",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "FAIL"
+              ]
+            }
+          },
+          {
+            "NextAction": "spam-queue",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "FAILED"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "set-queue",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-east-1:123456789012:instance/00000000-0000-0000-0000-000000000000/queue/00000000-0000-0000-0000-000000000001"
+      },
+      "Identifier": "set-queue",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "transfer-to-queue",
+        "Errors": [
+          {
+            "NextAction": "error-handler",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

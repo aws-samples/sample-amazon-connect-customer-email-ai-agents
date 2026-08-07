@@ -1,93 +1,95 @@
-# email-ai-agents-connect
+# Companion assets — Automate email support with Amazon Connect Customer email AI agents
 
+Deployable assets for the AWS Contact Center blog post of the same name.
 
+## Contents
 
-## Getting started
+| File | Purpose |
+|---|---|
+| `connect-email-infrastructure.yaml` | CloudFormation template. Creates two S3 buckets: one for email messages and attachments (with the CORS policy and bucket policy Amazon Connect Customer requires), one for knowledge base content. |
+| `sample-email-ai-flow.json` | Importable inbound contact flow. Checks the channel, associates the AI agents domain, inspects the Amazon SES spam verdict, and routes to one of two queues. |
+| `kb-content/` | Six short hotel policy documents used as grounding content. Deliberately rule-based so you can tell whether an answer came from your documents or the model. |
+| `architecture-email-ai-agents.puml` | PlantUML source for the architecture diagram. |
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Deploy
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+Replace the instance ARN and alias with your own:
 
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+```bash
+aws cloudformation deploy \
+  --template-file connect-email-infrastructure.yaml \
+  --stack-name connect-email-ai-poc \
+  --parameter-overrides \
+      ConnectInstanceArn="arn:aws:connect:us-east-1:111122223333:instance/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" \
+      ConnectInstanceAlias="my-instance-alias"
 ```
-cd existing_repo
-git remote add origin https://gitlab.aws.dev/abilasc/email-ai-agents-connect.git
-git branch -M main
-git push -uf origin main
+
+Retrieve both bucket names:
+
+```bash
+aws cloudformation describe-stacks \
+  --stack-name connect-email-ai-poc \
+  --query "Stacks[0].Outputs[*].[OutputKey,OutputValue]" --output table
 ```
 
-## Integrate with your tools
+Upload the knowledge base content:
 
-- [ ] [Set up project integrations](https://gitlab.aws.dev/abilasc/email-ai-agents-connect/-/settings/integrations)
+```bash
+aws s3 sync kb-content/ s3://{instance-alias}-connect-kb-content-{account-id}/
+```
 
-## Collaborate with your team
+## Before importing the flow
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+Replace three placeholder ARNs in `sample-email-ai-flow.json`:
 
-## Test and Deploy
+| Placeholder | Replace with |
+|---|---|
+| `...:assistant/00000000-0000-0000-0000-000000000000` | Your AI agents domain ARN |
+| `...queue/00000000-0000-0000-0000-000000000001` | Your main email queue ARN |
+| `...queue/00000000-0000-0000-0000-000000000002` | Your spam review queue ARN |
 
-Use the built-in continuous integration in GitLab.
+## Notes worth reading before you troubleshoot
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+**The Connect assistant block is two flow actions, not one.** `CreateWisdomSession`
+opens the session and `UpdateContactData` writes `$.Wisdom.SessionArn` onto the
+contact. Both are in this flow. If you rebuild the flow by hand and omit the
+second, no AI agent will ever run: the flow completes, the contact routes
+normally, and the assistant panel stays empty with no error logged anywhere.
 
-***
+**Customizations fail silently.** An AI agent that is published and active can
+still return nothing. In testing, a custom EmailResponse agent that overrode only
+the query reformulation prompt produced no draft at all. Change one agent at a
+time and send a test email after each change.
 
-# Editing this README
+**Publishing an agent does not activate it.** You must also call
+`update-assistant-ai-agent` to set it as the domain default. Confirm with:
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+```bash
+aws qconnect get-assistant --assistant-id <YOUR_DOMAIN_ID> \
+  --query "assistant.aiAgentConfiguration"
+```
 
-## Suggestions for a good README
+Every use case always appears in that output, pre-populated with a system agent,
+so a key being present proves nothing. Compare the returned ID against your own.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+**`connect:X-SES-SPAM-VERDICT` is not always present.** When absent the flow falls
+through to the main queue, which is the safe default. Treat the spam branch as
+best-effort and verify against your own mail.
 
-## Name
-Choose a self-explaining name for your project.
+**Flow logging needs a block in the flow.** Enabling contact flow logs at the
+instance level is not sufficient; add a **Set logging behavior** block.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## Clean up
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+Empty both buckets before deleting the stack, since CloudFormation cannot remove
+buckets that still hold objects:
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```bash
+aws s3 rm s3://{instance-alias}-connect-email-storage-{account-id}/ --recursive
+aws s3 rm s3://{instance-alias}-connect-kb-content-{account-id}/ --recursive
+aws cloudformation delete-stack --stack-name connect-email-ai-poc
+```
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+See `LICENSE`.

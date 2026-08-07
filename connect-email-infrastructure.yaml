@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'S3 buckets for Amazon Connect email storage and AI agents knowledge base (PoC)'
+
+Parameters:
+  ConnectInstanceArn:
+    Type: String
+    Description: 'ARN of your existing Amazon Connect instance'
+    AllowedPattern: '^arn:aws:connect:[a-z0-9-]+:\d{12}:instance/[a-f0-9-]+$'
+
+  ConnectInstanceAlias:
+    Type: String
+    Description: 'Your Amazon Connect instance alias (used to name the S3 buckets)'
+    AllowedPattern: '^[a-zA-Z0-9-]+$'
+
+Resources:
+  # Bucket 1: Email message + attachment storage (consumed by Amazon Connect email channel)
+  EmailStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ConnectInstanceAlias}-connect-email-storage-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: ['PUT', 'GET']
+            AllowedOrigins:
+              - '*.my.connect.aws'
+              - '*.awsapps.com'
+            MaxAge: 3000
+
+  EmailStorageBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref EmailStorageBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowConnectObjectAccess
+            Effect: Allow
+            Principal:
+              Service: connect.amazonaws.com
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+            Resource: !Sub '${EmailStorageBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                'aws:SourceAccount': !Ref 'AWS::AccountId'
+              ArnEquals:
+                'aws:SourceArn': !Ref ConnectInstanceArn
+          - Sid: AllowConnectListBucket
+            Effect: Allow
+            Principal:
+              Service: connect.amazonaws.com
+            Action: 's3:ListBucket'
+            Resource: !GetAtt EmailStorageBucket.Arn
+            Condition:
+              StringEquals:
+                'aws:SourceAccount': !Ref 'AWS::AccountId'
+              ArnEquals:
+                'aws:SourceArn': !Ref ConnectInstanceArn
+
+  # Bucket 2: Knowledge base content source (uploaded docs are ingested by AI Agents)
+  KnowledgeBaseContentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ConnectInstanceAlias}-connect-kb-content-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+Outputs:
+  EmailStorageBucketName:
+    Description: 'S3 bucket name for Amazon Connect email storage and attachments (used in Step 2.2)'
+    Value: !Ref EmailStorageBucket
+
+  KnowledgeBaseContentBucketName:
+    Description: 'S3 bucket name for AI agents knowledge base content (used in Step 3.2) - upload your docs here'
+    Value: !Ref KnowledgeBaseContentBucket

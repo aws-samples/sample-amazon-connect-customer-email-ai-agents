@@ -1,0 +1,12 @@
+Reservation Modification Policy
+
+Guests may modify check-in or check-out dates up to 24 hours before
+the scheduled arrival at no additional charge.
+
+Date changes requested within 24 hours of arrival are subject to
+availability and incur a $50 modification fee.
+
+To modify a reservation, agents should:
+1. Verify the booking reference number.
+2. Check availability for the new dates.
+3. Confirm the updated reservation details with the guest by email.

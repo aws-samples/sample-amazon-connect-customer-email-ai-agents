@@ -1,0 +1,15 @@
+Loyalty Program Benefits
+
+Silver tier:
+- 10% discount on room rates.
+
+Gold tier:
+- 15% discount on room rates.
+- Complimentary breakfast.
+- Room upgrade subject to availability.
+
+Platinum tier:
+- 20% discount on room rates.
+- Complimentary breakfast.
+- Guaranteed room upgrade.
+- Late check-out until 2:00 PM.
