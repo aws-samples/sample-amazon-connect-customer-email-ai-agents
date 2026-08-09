@@ -6,12 +6,39 @@ Deployable assets for the AWS Contact Center blog post of the same name.
 
 | File | Purpose |
 |---|---|
-| `connect-email-infrastructure.yaml` | CloudFormation template. Creates two S3 buckets: one for email messages and attachments (with the CORS policy and bucket policy Amazon Connect Customer requires), one for knowledge base content. |
+| `connect-email-infrastructure.yaml` | CloudFormation template. Creates two S3 buckets: one for email messages and attachments (with the CORS policy and bucket policy Amazon Connect Customer requires), one for knowledge base content. Creates nothing else and never modifies your instance. |
 | `sample-email-ai-flow.json` | Importable inbound contact flow. Checks the channel, associates the AI agents domain, inspects the Amazon SES spam verdict, and routes to one of two queues. |
 | `kb-content/` | Six short hotel policy documents used as grounding content. Deliberately rule-based so you can tell whether an answer came from your documents or the model. |
-| `architecture-email-ai-agents.puml` | PlantUML source for the architecture diagram. |
+| `architecture-email-ai-agents.png` | Architecture diagram used in the post. Exported from draw.io with the editable diagram embedded in the PNG, so you can reopen it in [draw.io](https://app.diagrams.net/) to edit. |
 
 ## Deploy
+
+### If your instance already stores email in Amazon S3
+
+Deploy with `CreateEmailStorageBucket=false` and keep the bucket you have. Only the
+knowledge base bucket is created. Repointing **Data storage** at a new bucket splits
+your email history across two buckets and leaves new mail outside any lifecycle or
+retention rules on the old one.
+
+Amazon Connect Customer creates a bucket automatically when you enable email, but
+that bucket has **no CORS rule** — we verified this — and attachment sharing needs
+one. If you keep your existing bucket, add the CORS rule to it yourself:
+
+```json
+[{"AllowedHeaders":["*"],"AllowedMethods":["PUT","GET"],
+  "AllowedOrigins":["*.my.connect.aws","*.awsapps.com"],"ExposeHeaders":[]}]
+```
+
+The email storage bucket in this template exists to save you that step on a clean
+instance. It is not otherwise required.
+
+### Parameters
+
+| Parameter | Default | Notes |
+|---|---|---|
+| `ConnectInstanceArn` | — | Required |
+| `ConnectInstanceAlias` | — | Required. Max 27 characters: the alias plus suffix plus your 12-digit account ID must fit S3's 63-character bucket name limit. |
+| `CreateEmailStorageBucket` | `true` | Set `false` to skip the email bucket |
 
 Replace the instance ARN and alias with your own:
 

@@ -2,3 +2,7 @@
 *.log
 .venv/
 __pycache__/
+
+# draw.io working files (not companion assets)
+*.drawio
+EMailAgents.drawio.png

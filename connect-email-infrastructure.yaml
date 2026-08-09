@@ -1,21 +1,41 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'S3 buckets for Amazon Connect email storage and AI agents knowledge base (PoC)'
+Description: 'S3 buckets for Amazon Connect Customer email storage and AI agents knowledge base (PoC)'
 
 Parameters:
   ConnectInstanceArn:
     Type: String
-    Description: 'ARN of your existing Amazon Connect instance'
+    Description: 'ARN of your existing Amazon Connect Customer instance'
     AllowedPattern: '^arn:aws:connect:[a-z0-9-]+:\d{12}:instance/[a-f0-9-]+$'
 
   ConnectInstanceAlias:
     Type: String
-    Description: 'Your Amazon Connect instance alias (used to name the S3 buckets)'
+    Description: 'Your instance alias (used to name the S3 buckets)'
     AllowedPattern: '^[a-zA-Z0-9-]+$'
+    MaxLength: 27
+    ConstraintDescription: >-
+      Must be 27 characters or fewer. The alias is combined with a suffix and your
+      12-digit account ID to form the bucket name, which S3 limits to 63 characters.
+
+  CreateEmailStorageBucket:
+    Type: String
+    Description: >-
+      Create the email storage bucket. Set to false if your instance already has an
+      Amazon S3 bucket associated for email messages and attachments and you want to
+      keep using it. Only the knowledge base bucket is created when false.
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+
+Conditions:
+  CreateEmailBucket: !Equals [!Ref CreateEmailStorageBucket, 'true']
 
 Resources:
-  # Bucket 1: Email message + attachment storage (consumed by Amazon Connect email channel)
+  # Bucket 1: Email message + attachment storage (consumed by the email channel).
+  # Optional. Amazon Connect Customer creates a bucket of its own when you enable
+  # email, but that bucket has no CORS rule. This one ships with the CORS rule that
+  # attachment sharing requires.
   EmailStorageBucket:
     Type: AWS::S3::Bucket
+    Condition: CreateEmailBucket
     Properties:
       BucketName: !Sub '${ConnectInstanceAlias}-connect-email-storage-${AWS::AccountId}'
       BucketEncryption:
@@ -38,6 +58,7 @@ Resources:
 
   EmailStorageBucketPolicy:
     Type: AWS::S3::BucketPolicy
+    Condition: CreateEmailBucket
     Properties:
       Bucket: !Ref EmailStorageBucket
       PolicyDocument:
@@ -69,7 +90,8 @@ Resources:
               ArnEquals:
                 'aws:SourceArn': !Ref ConnectInstanceArn
 
-  # Bucket 2: Knowledge base content source (uploaded docs are ingested by AI Agents)
+  # Bucket 2: Knowledge base content source (ingested by the AI agents domain).
+  # Always created.
   KnowledgeBaseContentBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -86,9 +108,10 @@ Resources:
 
 Outputs:
   EmailStorageBucketName:
-    Description: 'S3 bucket name for Amazon Connect email storage and attachments (used in Step 2.2)'
+    Condition: CreateEmailBucket
+    Description: 'S3 bucket for email messages and attachments. Point Data storage at this in Step 2.'
     Value: !Ref EmailStorageBucket
 
   KnowledgeBaseContentBucketName:
-    Description: 'S3 bucket name for AI agents knowledge base content (used in Step 3.2) - upload your docs here'
+    Description: 'S3 bucket for AI agents knowledge base content. Upload your documents here in Step 3.'
     Value: !Ref KnowledgeBaseContentBucket
