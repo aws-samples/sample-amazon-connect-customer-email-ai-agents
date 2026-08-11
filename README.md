@@ -6,7 +6,7 @@ Deployable assets for the AWS Contact Center blog post of the same name.
 
 | File | Purpose |
 |---|---|
-| `connect-email-infrastructure.yaml` | CloudFormation template. Creates two S3 buckets: one for email messages and attachments (with the CORS policy and bucket policy Amazon Connect Customer requires), one for knowledge base content. Creates nothing else and never modifies your instance. |
+| `connect-email-infrastructure.yaml` | CloudFormation template. Creates two S3 buckets: one for email messages and attachments (with the CORS policy and bucket policy Amazon Connect Customer requires), one for knowledge base content. Both use SSE-S3, block all public access, and deny non-HTTPS requests. Creates nothing else and never modifies your instance. |
 | `sample-email-ai-flow.json` | Importable inbound contact flow. Checks the channel, associates the AI agents domain, inspects the Amazon SES spam verdict, and routes to one of two queues. |
 | `kb-content/` | Six short hotel policy documents used as grounding content. Deliberately rule-based so you can tell whether an answer came from your documents or the model. |
 | `architecture-email-ai-agents.png` | Architecture diagram used in the post. Exported from draw.io with the editable diagram embedded in the PNG, so you can reopen it in [draw.io](https://app.diagrams.net/) to edit. |
@@ -119,4 +119,4 @@ aws cloudformation delete-stack --stack-name connect-email-ai-poc
 
 ## License
 
-See `LICENSE`.
+MIT-0. See `LICENSE`.

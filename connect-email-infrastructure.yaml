@@ -89,6 +89,19 @@ Resources:
                 'aws:SourceAccount': !Ref 'AWS::AccountId'
               ArnEquals:
                 'aws:SourceArn': !Ref ConnectInstanceArn
+          # Defense in depth. Amazon Connect Customer and the AWS SDKs already use
+          # HTTPS, so this denies a request path nothing here uses. Maps to AWS
+          # Security Hub control S3.5.
+          - Sid: RestrictToTLSRequestsOnly
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt EmailStorageBucket.Arn
+              - !Sub '${EmailStorageBucket.Arn}/*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
 
   # Bucket 2: Knowledge base content source (ingested by the AI agents domain).
   # Always created.
@@ -105,6 +118,26 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
+  # This bucket needs no grants: the AI agents S3 integration reads it through an
+  # IAM service role, not a resource policy. The policy exists only to enforce TLS.
+  KnowledgeBaseContentBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref KnowledgeBaseContentBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: RestrictToTLSRequestsOnly
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt KnowledgeBaseContentBucket.Arn
+              - !Sub '${KnowledgeBaseContentBucket.Arn}/*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
 
 Outputs:
   EmailStorageBucketName:
