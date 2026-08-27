@@ -222,6 +222,10 @@ aws s3 rm s3://{instance-alias}-connect-kb-content-{account-id}/ --recursive
 aws cloudformation delete-stack --stack-name connect-email-ai-poc
 ```
 
+## Security
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
 ## License
 
-MIT-0. See `LICENSE`.
+This library is licensed under the MIT-0 License. See the [LICENSE](LICENSE) file.
